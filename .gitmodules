@@ -1,4 +1,0 @@
-[submodule "submodules/jasmin-preprocessor"]
-	path = submodules/jasmin-preprocessor
-	url = https://github.com/ruipedro16/jasmin-preprocessor.git
-	branch = stable
