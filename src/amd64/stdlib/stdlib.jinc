@@ -1,0 +1,293 @@
+namespace std {
+    /**
+     * Compares two byte arrays of length SPX_N.
+     *
+     * This function performs a constant-time byte-wise comparison of two arrays
+     * `a` and `b`, each of length SPX_N. It returns a non-zero value if the arrays 
+     * differ, and zero if they are identical.
+     *
+     * @param a The first byte array to compare.
+     * @param b The second byte array to compare.
+     * @return A non-zero value if the arrays differ, zero if they are identical.
+     */
+    inline 
+    fn memcmp(reg ptr u8[SPX_N] a b) -> reg u8 {
+        reg u64 i;
+        reg u8 t acc;
+
+        acc = 0;
+    
+        i = 0;
+        while (i < SPX_N) {
+            t = a[i];
+            t ^= b[i];
+            acc |= t;
+            i += 1;
+        }
+
+        return acc;
+    }
+
+    inline 
+    fn __memcpy_u8u8p<OUTLEN>(
+        reg ptr u8[OUTLEN] out,
+        reg u64 offset,
+        reg uptr in,
+        reg u64 inlen
+    ) -> reg ptr u8[OUTLEN]
+    {
+        reg u64 i;
+
+        i = 0;
+        while (i < inlen) {
+            out[offset] = (u8)[in + i];
+            i += 1;
+            offset += 1;
+        }
+
+        return out;
+    }//<>
+
+    fn _memcpy_u8u8p<OUTLEN>(
+        reg ptr u8[OUTLEN] out,
+        reg u64 offset,
+        reg uptr in,
+        reg u64 inlen
+    ) -> reg ptr u8[OUTLEN]
+    {
+        out = __memcpy_u8u8p<OUTLEN>(out, offset, in, inlen);
+        return out;
+    }//<>
+
+    inline 
+    fn _x_memcpy_u8u8p<OUTLEN>(
+        reg ptr u8[OUTLEN] out,
+        reg u64 offset,
+        reg uptr in,
+        reg u64 inlen
+    ) -> reg ptr u8[OUTLEN]
+    {
+        out = out;
+        offset = offset;
+        in = in;
+
+        out = _memcpy_u8u8p<OUTLEN>(out, offset, in, inlen);
+
+        out = out;
+        return out;
+    }//<>
+
+    inline 
+    fn __memcpy_u8u8<OUTLEN,INLEN>(
+        reg ptr u8[OUTLEN] out,
+        reg u64 offset,
+        reg ptr u8[INLEN] in
+    ) -> reg ptr u8[OUTLEN] {
+        reg u64 i = 0;
+        while (i < INLEN) {
+            out[offset] = in[i];
+            i += 1;
+            offset += 1;
+        }
+        return out;
+    }//<>
+
+    fn _memcpy_u8u8<OUTLEN,INLEN>(
+        reg ptr u8[OUTLEN] out,
+        reg u64 offset,
+        reg ptr u8[INLEN] in
+    ) -> reg ptr u8[OUTLEN]
+    {
+        out = __memcpy_u8u8<OUTLEN,INLEN>(out, offset, in);
+        return out;
+    }//<>
+
+    inline 
+    fn _x_memcpy_u8u8<OUTLEN,INLEN>(
+      reg ptr u8[OUTLEN] out,
+      reg u64 offset,
+      reg ptr u8[INLEN] in
+    ) -> reg ptr u8[OUTLEN]
+    {
+      out = out;
+      offset = offset;
+      in = in;
+
+      out = _memcpy_u8u8<OUTLEN,INLEN>(out, offset, in);
+
+      out = out;
+
+      return out;
+    }//<>
+
+    inline 
+    fn __memcpy_u8u8_2<OUTLEN,INLEN>(
+      reg ptr u8[OUTLEN] out,
+      reg u64 out_offset,
+      reg ptr u8[INLEN] in,
+      reg u64 in_offset,
+      reg u64 bytes
+    ) -> reg ptr u8[OUTLEN]
+    {
+      reg u64 i = 0;
+
+      while (i < bytes) {
+        out[out_offset] = in[in_offset];
+        i += 1;
+        in_offset += 1;
+        out_offset += 1;
+      }
+
+      return out;
+    }//<>
+
+    fn _memcpy_u8u8_2<OUTLEN,INLEN>(
+      reg ptr u8[OUTLEN] out,
+      reg u64 out_offset,
+      reg ptr u8[INLEN] in,
+      reg u64 in_offset,
+      reg u64 bytes
+    ) -> reg ptr u8[OUTLEN]
+    {
+      out = __memcpy_u8u8_2<OUTLEN,INLEN>(out, out_offset, in, in_offset, bytes);
+      return out;
+    }//<>
+
+    inline 
+    fn _x_memcpy_u8u8_2<OUTLEN,INLEN>(
+      reg ptr u8[OUTLEN] out,
+      reg u64 out_offset,
+      reg ptr u8[INLEN] in,
+      reg u64 in_offset,
+      reg u64 bytes
+    ) -> reg ptr u8[OUTLEN]
+    {
+      out = out;
+      out_offset = out_offset;
+      in = in;
+      in_offset = in_offset;
+      bytes = bytes;
+
+      out = _memcpy_u8u8_2<OUTLEN,INLEN>(out, out_offset, in, in_offset, bytes);
+
+      out = out;
+
+      return out;
+    }//<>
+    
+    inline 
+    fn __memcpy_u8pu8<INLEN>(
+      reg uptr out,
+      reg u64 offset,
+      reg ptr u8[INLEN] in
+    )
+    {
+      reg u64 i = 0;
+
+      while (i < INLEN) {
+        (u8) [out + offset] = in[i];
+        offset += 1;
+        i += 1;
+      }
+    }//<>
+
+    fn _memcpy_u8pu8<INLEN>(
+      reg uptr out,
+      reg u64 offset,
+      reg ptr u8[INLEN] in
+    )
+    {
+      __memcpy_u8pu8<INLEN>(out, offset, in);
+    }//<>
+
+    inline 
+    fn _x_memcpy_u8pu8<INLEN>(
+      reg uptr out,
+      reg u64 offset,
+      reg ptr u8[INLEN] in
+    )
+    {
+      out = out;
+      offset = offset;
+      in = in;
+      _memcpy_u8pu8<INLEN>(out, offset, in);
+    }//<>
+
+    namespace cond {    
+        // Check if a < b /\ a < c
+        inline 
+        fn cond_u64_a_below_b_and_a_below_c(reg u64 a b c) -> reg bool {
+            reg bool c1 c2 c3;
+            reg u8 bc1 bc2;
+
+            ?{ "<u" = c1 } = #CMP_64(a, b);
+            bc1 = #SETcc(c1);
+
+            ?{ "<u" = c2 } = #CMP_64(a, c);
+            bc2 = #SETcc(c2);
+
+            ?{ "!=" = c3 } = #TEST_8(bc1, bc2); 
+
+            return c3;
+        }   
+
+        // a == b && c < d
+        // used in treehash to compute (internal_idx & 1) == 0 && idx < max_idx
+        inline 
+        fn cond_u32_a_eq_b_and_c_below_d(reg u32 a b c d) -> reg bool {
+          reg bool cond1 cond2 cond3;
+          reg u8 bc1 bc2;
+    
+          ?{ "==" = cond1 } = #CMP_32(a, b); 
+          bc1 = #SETcc(cond1);
+    
+          ?{ "<u" = cond2 } = #CMP_32(c, d); 
+          bc2 = #SETcc(cond2);
+    
+          ?{ "!=" = cond3 } = #TEST_8(bc1, bc2);
+    
+          return cond3;
+        } 
+    }
+
+    namespace bytes {
+        inline fn bytes_to_u64<INLEN>(reg ptr u8[INLEN] in) -> reg u64 {
+          inline int i;
+          reg u64 result t;
+
+          result = 0;
+          for i=0 to INLEN - 1 {
+            t = (64u) in[i];
+            result |= t;
+            result <<= 8;
+          } 
+
+          t = (64u) in[INLEN - 1];
+          result |= t;
+
+          return result;
+        }//<>
+
+        inline 
+        fn u64_to_bytes<OUTLEN>(reg ptr u8[OUTLEN] out, reg u64 in) -> reg ptr u8[OUTLEN] {
+          inline int i;
+
+          for i=OUTLEN-1 downto -1 { out[i] = (8u) in; in >>= 8; }
+
+          return out;
+        }//<>
+    }
+
+    inline 
+    fn __load_u8_array<INLEN>(reg ptr u8[INLEN] out, reg uptr addr) -> reg ptr u8[INLEN]  {
+      reg u64 i = 0;
+      while(i < INLEN) { out[i] = (u8)[addr + i]; i += 1; }
+      return out;
+    }//<>
+
+    inline 
+    fn __store_u8_array<INLEN>(reg ptr u8[INLEN] in, reg uptr addr) {
+      reg u64 i = 0;
+      while (i < INLEN) { (u8)[addr + i] = in[i]; i += 1; }
+    }//<>
+}

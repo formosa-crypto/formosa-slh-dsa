@@ -1,0 +1,25 @@
+inline 
+fn __load_nbytes(stack u8[SPX_N] out, reg uptr in) -> stack u8[SPX_N] 
+{
+    inline int i;
+
+    for i=0 to SPX_N { out[i] = (u8)[in + i]; }
+
+    return out;
+}
+
+inline 
+fn __store_nbyes(stack u8[SPX_N] in, reg uptr out) {
+    inline int i;
+
+    for i=0 to SPX_N { (u8)[out + i] = in[i]; }
+}
+
+inline 
+fn __zero_address(stack u32[8] a) -> stack u32[8] {
+    inline int i;
+
+    for i=0 to 8/2 { a[u64 i] = 0; }
+
+    return a;
+}

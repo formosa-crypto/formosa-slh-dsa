@@ -1,0 +1,85 @@
+inline 
+fn __merkle_sign(
+  reg ptr u8[SPX_TREE_HEIGHT * SPX_N + SPX_WOTS_BYTES] sig, // auth path
+  reg ptr u8[SPX_N] root,
+  reg ptr u8[SPX_N] pub_seed,
+  reg ptr u8[SPX_N] sk_seed,
+  reg ptr u32[8] wots_addr,
+  reg ptr u32[8] tree_addr,
+  reg u32 idx_leaf
+) -> reg ptr u8[SPX_TREE_HEIGHT * SPX_N + SPX_WOTS_BYTES],
+     reg ptr u8[SPX_N], 
+     reg ptr u32[8]
+{
+  stack u32[SPX_WOTS_LEN] steps;
+  reg ptr u32[SPX_WOTS_LEN] steps_p;
+
+  reg u32 wots_sign_leaf;
+
+  stack u32[8] leaf_addr;
+  reg ptr u32[8] leaf_addr_p;
+
+  stack u32[8] pk_addr;
+  reg ptr u32[8] pk_addr_p;
+
+  reg u64 offset t;
+
+  // struct leaf_info_x1 info = { 0 };
+  // NOTE:
+  // struct leaf_info_x1 {
+  //   unsigned char *wots_sig;
+  //   uint32_t wots_sign_leaf;
+  //   uint32_t *wots_steps;
+  //   uint32_t leaf_addr[8];
+  //   uint32_t pk_addr[8];
+  // };
+  
+  () = #spill(sig, pub_seed, sk_seed);
+
+  // chain_lengths(steps, root);
+  steps_p = steps;
+  steps_p = _chain_lengths(steps_p, root);
+
+  leaf_addr_p = leaf_addr; 
+  pk_addr_p = pk_addr;
+  
+  leaf_addr_p = __zero_address(leaf_addr_p);
+  pk_addr_p = __zero_address(pk_addr_p);
+
+  // set_type(&tree_addr[0], SPX_ADDR_TYPE_HASHTREE);
+  tree_addr = __set_type(tree_addr, SPX_ADDR_TYPE_HASHTREE);
+
+  // set_type(&info.pk_addr[0], SPX_ADDR_TYPE_WOTSPK);
+  pk_addr_p = __set_type(pk_addr_p, SPX_ADDR_TYPE_WOTSPK);
+
+  // copy_subtree_addr(&info.leaf_addr[0], wots_addr);
+  leaf_addr = __copy_subtree_addr(leaf_addr_p, wots_addr);
+
+  // copy_subtree_addr(&info.pk_addr[0], wots_addr);
+  pk_addr = __copy_subtree_addr(pk_addr_p, wots_addr);
+
+  // info.wots_sign_leaf = idx_leaf;
+  wots_sign_leaf = idx_leaf;
+
+  // treehashx1(root, auth_path, ctx, idx_leaf, 0, SPX_TREE_HEIGHT, wots_gen_leafx1, tree_addr, &info);
+  () = #unspill(sig, pub_seed, sk_seed);
+  root, tree_addr, sig, _, _ = __treehash_wots(root, pub_seed, sk_seed, idx_leaf, tree_addr, 
+                                              sig, wots_sign_leaf, steps_p, leaf_addr, pk_addr);
+  return sig, root, tree_addr;
+}
+
+fn _merkle_sign(
+  reg ptr u8[SPX_TREE_HEIGHT * SPX_N + SPX_WOTS_BYTES] sig,
+  reg ptr u8[SPX_N] root,
+  reg ptr u8[SPX_N] pub_seed,
+  reg ptr u8[SPX_N] sk_seed,
+  reg ptr u32[8] wots_addr,
+  reg ptr u32[8] tree_addr,
+  reg u32 idx_leaf
+) -> reg ptr u8[SPX_TREE_HEIGHT * SPX_N + SPX_WOTS_BYTES],
+     reg ptr u8[SPX_N], 
+     reg ptr u32[8]
+{
+  sig, root, tree_addr = __merkle_sign(sig, root, pub_seed, sk_seed, wots_addr, tree_addr, idx_leaf);
+  return sig, root, tree_addr;
+}

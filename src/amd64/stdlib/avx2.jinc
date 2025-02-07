@@ -1,0 +1,75 @@
+// TODO: Rename the parameters to match the INTEL documentation.
+
+/**
+ * Set 256-bit register with eight 32-bit integer values.
+ *
+ * @param e0 The 32-bit integer value to set at position 0.
+ * @param e1 The 32-bit integer value to set at position 1.
+ * @param e2 The 32-bit integer value to set at position 2.
+ * @param e3 The 32-bit integer value to set at position 3.
+ * @param e4 The 32-bit integer value to set at position 4.
+ * @param e5 The 32-bit integer value to set at position 5.
+ * @param e6 The 32-bit integer value to set at position 6.
+ * @param e7 The 32-bit integer value to set at position 7.
+ * @return A 256-bit register containing the eight 32-bit integer values.
+ */
+inline 
+fn _mm256_set_epi32(reg u32 e0 e1 e2 e3 e4 e5 e6 e7) -> reg u256 {
+    // From https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm256_set_epi32
+    //
+    // dst[31:0] := e0
+    // dst[63:32] := e1
+    // dst[95:64] := e2
+    // dst[127:96] := e3
+    // dst[159:128] := e4
+    // dst[191:160] := e5
+    // dst[223:192] := e6
+    // dst[255:224] := e7
+    // dst[MAX:256] := 0
+    
+    reg u256 t;
+    stack u256[1] a;
+
+    a[u32 0] = e7;
+    a[u32 1] = e6;
+    a[u32 2] = e5;
+    a[u32 3] = e4;
+    a[u32 4] = e3;
+    a[u32 5] = e2;
+    a[u32 6] = e1;
+    a[u32 7] = e0;
+
+    t = a[0];
+    return t;
+}
+
+/**
+ * Set a 256-bit AVX2 register with four 64-bit integer values.
+ *
+ * @param e0 The 64-bit integer value to be set in the lowest 64 bits of the register.
+ * @param e1 The 64-bit integer value to be set in the second 64 bits of the register.
+ * @param e2 The 64-bit integer value to be set in the third 64 bits of the register.
+ * @param e3 The 64-bit integer value to be set in the highest 64 bits of the register.
+ * @return A 256-bit AVX2 register containing the specified 64-bit integer values.
+ */
+inline 
+fn _mm256_set_epi64x(reg u64 e0 e1 e2 e3) -> reg u256 {
+    // From https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm256_set_epi64x
+    //
+    // dst[63:0] := e0
+    // dst[127:64] := e1
+    // dst[191:128] := e2
+    // dst[255:192] := e3
+    // dst[MAX:256] := 0
+
+    stack u256[1] t;
+    reg u256 res;
+
+    t[u64 0] = e3;
+    t[u64 1] = e2;
+    t[u64 2] = e1;
+    t[u64 3] = e0;
+
+    res = t[0];
+    return res;
+}

@@ -1,0 +1,128 @@
+//
+// Computes a root node given a leaf and an auth path.
+// Expects address to be complete other than the tree_height and tree_index.
+//
+// 
+inline 
+fn __compute_root(
+  reg ptr u8[SPX_N] root, 
+  reg ptr u8[SPX_N] leaf,
+  reg u32 leaf_idx,
+  reg u32 idx_offset,
+  reg uptr auth_path,   // memory pointer (sig)
+  reg u32 tree_height, // assume > 0 ; check comment next to while loop
+  reg ptr u8[SPX_N] pub_seed,
+  reg ptr u32[8] addr
+) -> reg ptr u8[SPX_N], reg ptr u32[8] 
+{
+  stack u8[2*SPX_N] buffer;
+
+  reg ptr u8[SPX_N] buffer_0 buffer_1; // first half and second half
+
+  reg u64 offset index;
+  reg u32 i leaf_idx_bit t;
+  
+  inline int j;
+
+  () = #spill(root, pub_seed);
+
+  // If leaf_idx is odd (last bit = 1), current path element is a right child
+  // and auth_path has to go left. Otherwise it is the other way around.
+
+
+  leaf_idx_bit = leaf_idx;
+  leaf_idx_bit &= 1;
+
+  if(leaf_idx_bit == 1) {
+    // buffer = auth_path || leaf
+    buffer = std::_x_memcpy_u8u8p<2*SPX_N>(buffer, 0, auth_path, SPX_N);
+    buffer[SPX_N : SPX_N] = #copy(leaf);
+  } else {
+    // buffer = leaf || auth_path
+    buffer[0 : SPX_N] = #copy(leaf);
+    buffer = std::_x_memcpy_u8u8p<2*SPX_N>(buffer, SPX_N, auth_path, SPX_N);
+  }
+
+  // increment pointer (sig)
+  auth_path += SPX_N;
+  () = #spill(auth_path);
+
+  //for (i = 0; i < tree_height - 1; i++) {
+  i = 0;
+  tree_height -= 1; // given this, it seems to be the case that tree_height > 0 is a precondition.
+  while(i < tree_height) {
+        () = #spill(tree_height, i);
+
+    leaf_idx >>= 1;
+    idx_offset >>= 1;
+
+    // Set the address of the node we're creating.
+    t = #LEA_32(i + 1);
+    addr = __set_tree_height(addr, t);
+
+    t = #LEA_32(leaf_idx + idx_offset);
+    addr = __set_tree_index(addr, t);
+
+    () = #spill(addr);
+
+    // Pick the right or left neighbor, depending on parity of the node.
+    leaf_idx_bit = leaf_idx;
+    leaf_idx_bit &= 1;
+
+    () = #spill(leaf_idx, idx_offset);
+    () = #unspill(pub_seed);
+
+    // Dentro deste if, as chamadas ao treehash estao um bocado marteladas
+    // Temos que chamar a funcao thash inline e nao e local (__thash_) porque
+    // os argumentos 1 e 2 nao sao disjuntos.
+    // Da para evitar isto se copiar o valor de buffer para um array tipo thash_in
+    if (leaf_idx_bit == 1) {
+      // thash(buffer + SPX_N, buffer, 2, ctx, addr);
+      buffer_1 = buffer[SPX_N : SPX_N];
+      buffer_1 = __thash<2>(buffer_1, buffer, pub_seed, addr);
+      buffer[SPX_N : SPX_N] = buffer_1;
+
+      // memcpy(buffer, auth_path, SPX_N);
+      buffer_0 = buffer[0:SPX_N];
+      () = #unspill(auth_path);
+      buffer_0 = std::_x_memcpy_u8u8p<SPX_N>(buffer_0, 0, auth_path, SPX_N);
+      buffer[0 : SPX_N] = buffer_0;
+    } else {
+      // thash(buffer, buffer, 2, ctx, addr);
+      buffer_0 = buffer[0 : SPX_N]; 
+      buffer_0 = __thash<2>(buffer_0, buffer, pub_seed, addr);
+      buffer[0 : SPX_N] = buffer_0;
+
+      // memcpy(buffer + SPX_N, auth_path, SPX_N);
+      buffer_1 = buffer[SPX_N : SPX_N];
+      () = #unspill(auth_path);
+      buffer_1 = std::_x_memcpy_u8u8p<SPX_N>(buffer_1, 0, auth_path, SPX_N);
+      buffer[SPX_N:SPX_N] = buffer_1;
+    }
+
+    auth_path += SPX_N;
+
+    () = #spill(auth_path);
+    () = #unspill(addr, leaf_idx, idx_offset, tree_height, i);
+
+    i += 1;
+  }
+
+  tree_height += 1; // restore tree_height to its previous value
+
+  leaf_idx >>= 1;
+  idx_offset >>= 1;
+  addr = __set_tree_height(addr, tree_height);
+
+  // The last iteration is exceptional; we do not copy an auth_path node.
+  
+  t = #LEA_32(leaf_idx + idx_offset);
+  addr = __set_tree_index(addr, t);
+
+  buffer = buffer;
+  () = #unspill(pub_seed);
+
+  root = __thash_<2>(root, buffer, pub_seed, addr);
+
+  return root, addr;
+}//<>

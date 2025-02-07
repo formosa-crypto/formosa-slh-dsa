@@ -1,0 +1,94 @@
+////////////////////////////////////////////////////////////        address.jinc
+
+inline
+fn __set_layer_addr(reg ptr u32[8] addr, reg u32 layer) -> reg ptr u32[8] {
+    addr[u8 SPX_OFFSET_LAYER] = (8u) layer;
+    return addr;
+}
+
+inline
+fn __set_tree_addr(reg ptr u32[8] addr, reg u64 tree) -> reg ptr u32[8] {
+    tree = #BSWAP_64(tree);
+    addr.[u64 SPX_OFFSET_TREE] = tree;
+    return addr;
+}
+
+inline
+fn __set_type(reg ptr u32[8] addr, reg u32 _type) -> reg ptr u32[8] {
+    addr[u8 SPX_OFFSET_TYPE] = (8u) _type; // Obs: _type was replaced by type because type is now a reserved word
+    return addr;
+}
+
+inline
+fn __copy_subtree_addr(reg ptr u32[8] out in) -> reg ptr u32[8] {
+    // SPX_OFFSET_TREE is either 8 or 1
+    // Para todas as variantes que estamos a considerar (i.e. shake), SPX_OFFSET_TREE e sempre 8
+
+    if SPX_OFFSET_TREE == 8 {
+        // In this case, SPX_OFFSET_TREE = 8, so we copy 8+8 = 16 bytes (=2 64-bit words)
+        // This is faster than the else branch
+        out[u64 0] = in[u64 0];
+        out[u64 1] = in[u64 1];
+    } else { // SPX_OFFSET_TREE = 1
+        // Obs: Not implemented (and wont be) because SPX_OFFSET_TREE is only 1 in the SHA-2 variants
+    }
+
+    return out;
+}
+
+inline
+fn __set_keypair_addr(reg ptr u32[8] addr, reg u32 keypair) -> reg ptr u32[8] {
+    // u32_to_bytes(&((unsigned char *)addr)[SPX_OFFSET_KP_ADDR], keypair);
+    reg u32 t = keypair;
+    t = #BSWAP_32(t);
+    addr.[u32 SPX_OFFSET_KP_ADDR] = t;
+    return addr;
+}
+
+inline
+fn __copy_keypair_addr(reg ptr u32[8] out in) -> reg ptr u32[8] {
+    // memcpy(out, in, SPX_OFFSET_TREE+8);
+    // Obs; Para as variantes que estamos a considerar (shake), SPX_OFFSET_TREE e sempre 8,
+    // logo SPX_OFFSET_TREE + 8 = 16 bytes. Copiar 16 bytes e o mm que copiar 2 words de 64 bits
+    //
+    // Para estas variantes, SPX_OFFSET_KP_ADDR tambem e sempre 20.
+    #inline if (SPX_OFFSET_TREE == 8) {
+        // memcpy( out, in, SPX_OFFSET_TREE+8 );
+        out[u64 0] = in[u64 0];
+        out[u64 1] = in[u64 1];
+
+        // memcpy( (unsigned char *)out + SPX_OFFSET_KP_ADDR, (unsigned char *)in + SPX_OFFSET_KP_ADDR, 4); 
+        // copiar 4 bytes e o mm q uma word de 32-bits
+        out.[u32 SPX_OFFSET_KP_ADDR] = in.[u32 SPX_OFFSET_KP_ADDR];
+    } else { 
+        // NOT IMPLEMENTED
+    }
+    return out;
+}
+
+inline
+fn __set_chain_addr(reg ptr u32[8] addr, reg u32 chain) -> reg ptr u32[8] {
+    addr[u8 SPX_OFFSET_CHAIN_ADDR] = (8u) chain;
+    return addr;
+}
+
+inline
+fn __set_hash_addr(reg ptr u32[8] addr, reg u32 hash)-> reg ptr u32[8] {
+    addr[u8 SPX_OFFSET_HASH_ADDR] = (8u) hash;
+    return addr;
+}
+
+inline
+fn __set_tree_height(reg ptr u32[8] addr, reg u32 tree_height) -> reg ptr u32[8] {
+    addr[u8 SPX_OFFSET_TREE_HGT] = (8u) tree_height;
+    return addr;
+}
+
+inline
+fn __set_tree_index(reg ptr u32[8] addr, reg u32 tree_index) -> reg ptr u32[8] {
+    tree_index = #BSWAP_32(tree_index);
+    addr.[u32 SPX_OFFSET_TREE_INDEX] = tree_index;
+    return addr;
+}
+
+////////////////////////////////////////////////////////////////////////////////

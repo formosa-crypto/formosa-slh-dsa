@@ -1,0 +1,407 @@
+fn _crypto_sign_seed_keypair(
+  reg ptr u8[SPX_PK_BYTES] pk,
+  reg ptr u8[SPX_SK_BYTES] sk,
+  reg ptr u8[CRYPTO_SEEDBYTES] seed
+) -> reg ptr u8[SPX_PK_BYTES],
+     reg ptr u8[SPX_SK_BYTES]
+{
+  stack u8[SPX_N] pub_seed;
+  stack u8[SPX_N] sk_seed;
+
+  reg ptr u8[SPX_N] pub_seed_p;
+  reg ptr u8[SPX_N] sk_seed_p;
+
+  reg ptr u8[SPX_N] root;
+  reg ptr u8[SPX_N] buf;
+  reg u64 offset;
+
+  // memcpy(sk, seed, CRYPTO_SEEDBYTES);
+  offset = 0;
+  sk = std::_x_memcpy_u8u8<SPX_SK_BYTES, CRYPTO_SEEDBYTES>(sk, offset, seed);
+
+  // memcpy(pk, sk + 2 * SPX_N, SPX_N);
+  offset = 0;
+  buf = sk[2 * SPX_N : SPX_N];
+  pk = std::_x_memcpy_u8u8<SPX_PK_BYTES, SPX_N>(pk, offset, buf);
+
+  // memcpy(ctx.pub_seed, pk, SPX_N);
+  pub_seed_p = pub_seed;
+  offset = 0;
+  buf = pk[0 : SPX_N];
+  pub_seed = std::_x_memcpy_u8u8<SPX_N, SPX_N>(pub_seed_p, offset, buf);
+
+  // memcpy(ctx.sk_seed, sk, SPX_N);
+  sk_seed_p = sk_seed;
+  offset = 0;
+  buf = sk[0 : SPX_N];
+  sk_seed = std::_x_memcpy_u8u8<SPX_N, SPX_N>(sk_seed_p, offset, buf);
+
+  () = #spill(pk);
+
+  // merkle_gen_root(sk + 3 * SPX_N, &ctx);
+  root = sk[3*SPX_N : SPX_N];
+  pub_seed_p = pub_seed;
+  sk_seed_p = sk_seed;
+  sk[3*SPX_N : SPX_N] = _merkle_gen_root(root, pub_seed_p, sk_seed_p);
+
+  () = #unspill(pk);
+
+  // memcpy(pk + SPX_N, sk + 3 * SPX_N, SPX_N);  
+  offset = SPX_N;
+  buf = sk[3*SPX_N : SPX_N];
+  pk = std::_x_memcpy_u8u8<SPX_PK_BYTES, SPX_N>(pk, offset, buf);
+
+  return pk, sk;
+}
+
+inline 
+fn __crypto_sign_keypair(
+  reg ptr u8[SPX_PK_BYTES] pk,
+  reg ptr u8[SPX_SK_BYTES] sk
+) -> reg ptr u8[SPX_PK_BYTES],
+     reg ptr u8[SPX_SK_BYTES]
+{
+    stack u8[CRYPTO_SEEDBYTES] seed;
+    reg ptr u8[CRYPTO_SEEDBYTES] seed_p;
+
+    seed_p = seed;
+    seed_p = #randombytes(seed_p);
+
+    pk = pk; sk = sk; // register allocation
+
+    pk, sk = _crypto_sign_seed_keypair(pk, sk, seed);
+
+    return pk, sk;
+}
+
+inline 
+fn __crypto_sign_signature(
+  reg uptr sig msg, // TODO: Substituir estes nomes por sig_ptr e msg_ptr
+  reg u64 msg_len,
+  reg ptr u8[SPX_SK_BYTES] sk
+)
+{
+  stack u8[SPX_N] pub_seed;
+  stack u8[SPX_N] sk_seed;
+  stack u8[SPX_N] optrand;
+  stack u8[SPX_N] randomness;
+  stack u8[SPX_FORS_MSG_BYTES] mhash;
+  stack u8[SPX_N] root;
+  stack u32[8] wots_addr;
+  stack u32[8] tree_addr;
+
+  reg ptr u8[SPX_PK_BYTES] pk;
+  reg ptr u8[SPX_N] sk_prf;
+
+  stack u8[SPX_TREE_HEIGHT * SPX_N + SPX_WOTS_BYTES] auth_path;
+  reg ptr u8[SPX_TREE_HEIGHT * SPX_N + SPX_WOTS_BYTES] auth_path_p;
+
+  reg u32 idx_leaf layer; 
+
+  reg u64 tree i; 
+
+  inline int k;
+
+  () = #spill(msg, msg_len, sig, pk);
+
+  // const unsigned char *sk_prf = sk + SPX_N;
+  sk_prf = sk[SPX_N : SPX_N];
+
+  // const unsigned char *pk = sk + 2 * SPX_N;
+  pk = sk[2*SPX_N : SPX_PK_BYTES];  
+
+  () = #spill(sk_prf, pk);
+
+  // uint32_t wots_addr[8] = {0};
+  wots_addr = __zero_address(wots_addr);
+
+  // uint32_t tree_addr[8] = {0};
+  tree_addr = __zero_address(tree_addr);
+
+  // memcpy(ctx.sk_seed, sk, SPX_N);
+  sk_seed = #copy(sk[0 : SPX_N]);  
+
+  // memcpy(ctx.pub_seed, pk, SPX_N);
+  pub_seed = #copy(pk[0 : SPX_N]);
+
+  // set_type(wots_addr, SPX_ADDR_TYPE_WOTS);
+  // set_type(tree_addr, SPX_ADDR_TYPE_HASHTREE);
+  wots_addr = __set_type(wots_addr, SPX_ADDR_TYPE_WOTS);
+  tree_addr = __set_type(tree_addr, SPX_ADDR_TYPE_HASHTREE);
+  
+  // randombytes(optrand, SPX_N);
+  optrand = #randombytes(optrand);
+
+  // gen_message_random(sig, sk_prf, optrand, m, mlen, &ctx);
+  () = #unspill(sk_prf, msg, msg_len);
+  randomness = __gen_message_random(randomness, sk_prf, optrand, msg, msg_len);
+
+  // Copy the first SPX_N bytes of the randomness to the signature
+  () = #unspill(sig);
+  std::_x_memcpy_u8pu8<SPX_N>(sig, 0, randomness);
+
+  // hash_message(mhash, &tree, &idx_leaf, sig, pk, m, mlen, &ctx);
+  //                                        || 
+  //                                        \/
+  //                         Here, the 1st SPX_N bytes of sig
+  //                         are the randomness bytes
+  () = #unspill(pk, msg, msg_len);
+  mhash, tree, idx_leaf = _hash_message(mhash, randomness, pk, msg, msg_len);
+  () = #spill(tree, idx_leaf);
+
+  () = #unspill(sig);
+  sig += SPX_N;
+  () = #spill(sig);
+
+  // set_tree_addr(wots_addr, tree);
+  // set_keypair_addr(wots_addr, idx_leaf);
+  wots_addr = __set_tree_addr(wots_addr, tree);
+  wots_addr = __set_keypair_addr(wots_addr, idx_leaf);
+
+  // fors_sign(sig, root, mhash, &ctx, wots_addr);
+  root = _fors_sign(sig, root, mhash, pub_seed, sk_seed, wots_addr);
+
+  // sig += SPX_FORS_BYTES;
+  () = #unspill(sig);
+  sig += SPX_FORS_BYTES;
+  () = #spill(sig);
+
+  i = 0;
+  #bounded while (i < SPX_D) {
+    () = #spill(i);
+
+    // set_layer_addr(tree_addr, i);
+    layer = (32u) i;
+    tree_addr = __set_layer_addr(tree_addr, layer);
+
+    // set_tree_addr(tree_addr, tree);
+    () = #unspill(tree);
+    tree_addr = __set_tree_addr(tree_addr, tree);
+
+    // copy_subtree_addr(wots_addr, tree_addr);
+    wots_addr = __copy_subtree_addr(wots_addr, tree_addr);
+
+    // set_keypair_addr(wots_addr, idx_leaf);
+    () = #unspill(idx_leaf);
+    wots_addr = __set_keypair_addr(wots_addr, idx_leaf);
+
+    // merkle_sign(sig, root, &ctx, wots_addr, tree_addr, idx_leaf);
+    () = #unspill(sig, idx_leaf);
+    auth_path = std::__load_u8_array<SPX_TREE_HEIGHT * SPX_N + SPX_WOTS_BYTES>(auth_path, sig);
+    auth_path, root, tree_addr = _merkle_sign(auth_path, root, pub_seed, sk_seed, wots_addr, tree_addr, idx_leaf);
+    () = #unspill(sig);
+    std::__store_u8_array<SPX_TREE_HEIGHT * SPX_N + SPX_WOTS_BYTES>(auth_path, sig);
+
+    // sig += SPX_WOTS_BYTES + SPX_TREE_HEIGHT * SPX_N;
+    sig += SPX_WOTS_BYTES + SPX_TREE_HEIGHT * SPX_N;
+    () = #spill(sig);
+
+    // idx_leaf = (tree & ((1 << SPX_TREE_HEIGHT) - 1));
+    () = #unspill(idx_leaf, tree);
+    k = (1 << SPX_TREE_HEIGHT) - 1;
+    idx_leaf = tree;
+    idx_leaf &= k;
+    () = #spill(idx_leaf);
+
+    // tree = tree >> SPX_TREE_HEIGHT;
+    ?{}, tree = #SHR(tree, SPX_TREE_HEIGHT);
+    () = #spill(tree);
+
+    () = #unspill(i);
+    i += 1;
+  }
+}
+
+#[returnaddress="stack"]
+fn _crypto_sign_signature(
+  reg uptr sig,
+  reg uptr msg,
+  reg u64 msg_len,
+  reg ptr u8[SPX_SK_BYTES] sk
+) { __crypto_sign_signature(sig, msg, msg_len, sk); }
+
+inline 
+fn ___crypto_sign_signature_(
+  reg uptr sig sig_len_ptr m,
+  reg u64 mlen,
+  reg ptr u8[SPX_SK_BYTES] sk
+) -> reg u64
+{
+  reg u64 r;
+
+  () = #spill(sig_len_ptr);
+
+  _crypto_sign_signature(sig, m, mlen, sk);
+  
+  () = #unspill(sig_len_ptr);
+
+  [sig_len_ptr] = SPX_BYTES;
+
+  ?{}, r = #set0();
+
+  return r;
+}
+
+inline 
+fn __crypto_sign_verify(
+  reg uptr sig_ptr msg_ptr,
+  reg u64 msg_len,
+  reg ptr u8[SPX_PK_BYTES] pk
+) -> reg u64
+{
+  stack u32[8] wots_addr;
+  stack u32[8] tree_addr;
+  stack u32[8] wots_pk_addr;
+  stack u8[SPX_WOTS_BYTES] wots_pk;
+  stack u8[SPX_N] pub_seed;
+  stack u8[SPX_FORS_MSG_BYTES] mhash;
+  stack u8[SPX_N] randomness;
+  stack u8[SPX_N] root;
+  stack u8[SPX_N] leaf;
+
+  reg u64 res;
+  reg u8 res8;
+  reg u32 idx_leaf layer;
+  reg u64 tree;
+
+  reg u64 i;
+
+  inline int k;
+
+  () = #spill(sig_ptr, msg_ptr, msg_len, pk);
+
+  // uint32_t wots_addr[8] = {0};
+  wots_addr = __zero_address(wots_addr);
+
+  // uint32_t tree_addr[8] = {0};
+  tree_addr = __zero_address(tree_addr);
+
+  // uint32_t wots_pk_addr[8] = {0};
+  wots_pk_addr = __zero_address(wots_pk_addr);
+
+  // memcpy(ctx.pub_seed, pk, SPX_N);
+  pub_seed = #copy(pk[0 : SPX_N]);
+
+  // set_type(wots_addr, SPX_ADDR_TYPE_WOTS);
+  // set_type(tree_addr, SPX_ADDR_TYPE_HASHTREE);
+  // set_type(wots_pk_addr, SPX_ADDR_TYPE_WOTSPK);
+  wots_addr = __set_type(wots_addr, SPX_ADDR_TYPE_WOTS);
+  tree_addr = __set_type(tree_addr, SPX_ADDR_TYPE_HASHTREE);
+  wots_pk_addr = __set_type(wots_pk_addr, SPX_ADDR_TYPE_WOTSPK);
+
+  // hash_message(mhash, &tree, &idx_leaf, sig, pk, m, mlen, &ctx);
+  () = #unspill(sig_ptr);
+  randomness = std::__load_u8_array<SPX_N>(randomness, sig_ptr);
+  mhash, tree, idx_leaf = _hash_message(mhash, randomness, pk, msg_ptr, msg_len);
+  () = #spill(tree, idx_leaf);
+
+  // sig += SPX_N;
+  () = #unspill(sig_ptr);
+  sig_ptr += SPX_N;
+  () = #spill(sig_ptr);
+
+  // set_tree_addr(wots_addr, tree);
+  // set_keypair_addr(wots_addr, idx_leaf);
+  wots_addr = __set_tree_addr(wots_addr, tree);
+  wots_addr = __set_keypair_addr(wots_addr, idx_leaf);
+
+  // fors_pk_from_sig(root, sig, mhash, &ctx, wots_addr);
+  root = _fors_pk_from_sig(root, sig_ptr, mhash, pub_seed, wots_addr);
+
+  // sig += SPX_FORS_BYTES;
+  () = #unspill(sig_ptr);
+  sig_ptr += SPX_FORS_BYTES;
+  () = #spill(sig_ptr);
+
+  i = 0;
+  #bounded while(i < SPX_D) {
+    () = #spill(i);
+    () = #unspill(tree, idx_leaf);
+
+    // set_layer_addr(tree_addr, i);
+    // set_tree_addr(tree_addr, tree);
+    // copy_subtree_addr(wots_addr, tree_addr);
+    // set_keypair_addr(wots_addr, idx_leaf);
+    // copy_keypair_addr(wots_pk_addr, wots_addr); 
+    layer = (32u) i;
+    tree_addr = __set_layer_addr(tree_addr, layer);
+    tree_addr = __set_tree_addr(tree_addr, tree);
+    wots_addr = __copy_subtree_addr(wots_addr, tree_addr);
+    wots_addr = __set_keypair_addr(wots_addr, idx_leaf);
+    wots_pk_addr = __copy_keypair_addr(wots_pk_addr, wots_addr); 
+
+    // wots_pk_from_sig(wots_pk, sig, root, &ctx, wots_addr);
+    () = #unspill(sig_ptr);
+    wots_pk, wots_addr = _wots_pk_from_sig(wots_pk, sig_ptr, root, pub_seed, wots_addr);
+    
+    // sig += SPX_WOTS_BYTES;
+    () = #unspill(sig_ptr);
+    sig_ptr += SPX_WOTS_BYTES;
+    () = #spill(sig_ptr);
+
+    // thash(leaf, wots_pk, SPX_WOTS_LEN, &ctx, wots_pk_addr);
+    leaf = _thash<SPX_WOTS_LEN>(leaf, wots_pk, pub_seed, wots_pk_addr);
+
+    // compute_root(root, leaf, idx_leaf, 0, sig, SPX_TREE_HEIGHT, &ctx, tree_addr);
+    () = #unspill(sig_ptr, idx_leaf);
+    root, tree_addr = __compute_root(root, leaf, idx_leaf, 0, sig_ptr, SPX_TREE_HEIGHT, pub_seed, tree_addr);
+
+    // sig += SPX_TREE_HEIGHT * SPX_N;
+    () = #unspill(sig_ptr);
+    sig_ptr += SPX_TREE_HEIGHT * SPX_N;
+    () = #spill(sig_ptr);
+
+    // idx_leaf = (tree & ((1 << SPX_TREE_HEIGHT) - 1));
+    k = (1 << SPX_TREE_HEIGHT) - 1;
+    () = #unspill(tree);
+    idx_leaf = tree;
+    idx_leaf &= k;
+    
+    // tree = tree >> SPX_TREE_HEIGHT;
+    ?{}, tree = #SHR(tree, SPX_TREE_HEIGHT);
+
+    () = #spill(idx_leaf, tree);
+    () = #unspill(i);
+    i += 1;
+  }
+
+  () = #unspill(pk);
+  res8 = std::memcmp(root, pk[SPX_N : SPX_N]);
+  res = (64u) res8;
+
+  return res;
+}
+
+fn _crypto_sign_verify(
+  reg uptr sig_ptr msg_ptr,
+  reg u64 msg_len,
+  reg ptr u8[SPX_PK_BYTES] pk
+) -> reg u64
+{
+  reg u64 res = __crypto_sign_verify(sig_ptr, msg_ptr, msg_len, pk);
+  return res;
+}
+
+inline 
+fn __crypto_sign_verify_(
+  reg uptr sig_ptr,
+  reg u64 sig_len,
+  reg uptr m_ptr,
+  reg u64 m_len,
+  reg ptr u8[SPX_PK_BYTES] pk
+) -> reg u64
+{
+  reg u64 r;
+
+  if (sig_len != SPX_BYTES) { r = -1; } 
+  else { r = _crypto_sign_verify(sig_ptr, m_ptr, m_len, pk); }
+
+  return r;
+}
+
+/*
+Faltam aqui as funcoes 
+  __crypto_sign
+  __crypto_sign_open
+
+  */

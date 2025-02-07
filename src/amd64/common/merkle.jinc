@@ -1,0 +1,66 @@
+inline 
+fn __merkle_gen_root(
+  reg ptr u8[SPX_N] root,
+  reg ptr u8[SPX_N] pub_seed,
+  reg ptr u8[SPX_N] sk_seed
+) -> reg ptr u8[SPX_N]
+{
+  stack u8[SPX_TREE_HEIGHT * SPX_N + SPX_WOTS_BYTES] auth_path;
+  reg ptr u8[SPX_TREE_HEIGHT * SPX_N + SPX_WOTS_BYTES] auth_path_p;
+
+  stack u32[8] top_tree_addr; 
+  reg ptr u32[8] top_tree_addr_p; 
+  
+  stack u32[8] wots_addr;
+  reg ptr u32[8] wots_addr_p;
+
+  reg u32 t;
+
+  // uint32_t top_tree_addr[8] = {0};
+  // uint32_t wots_addr[8] = {0};
+  top_tree_addr = __zero_address(top_tree_addr);
+  wots_addr = __zero_address(wots_addr);
+
+  // set_layer_addr(top_tree_addr, SPX_D - 1);
+  top_tree_addr_p = top_tree_addr;
+  top_tree_addr_p = __set_layer_addr(top_tree_addr_p, SPX_D - 1);
+  
+  // set_layer_addr(wots_addr, SPX_D - 1);
+  wots_addr_p = wots_addr;
+  wots_addr_p = __set_layer_addr(wots_addr_p, SPX_D - 1);
+
+  // merkle_sign(auth_path, root, ctx, wots_addr, top_tree_addr, (uint32_t)~0);
+  auth_path_p = auth_path;
+  t = 0xFFFFFFFF;
+  _, root, _ = _merkle_sign(auth_path_p, root, pub_seed, sk_seed, 
+                                                    wots_addr_p, top_tree_addr_p, t);
+
+  return root;
+}
+
+fn _merkle_gen_root(
+  reg ptr u8[SPX_N] root,
+  reg ptr u8[SPX_N] pub_seed,
+  reg ptr u8[SPX_N] sk_seed
+) -> reg ptr u8[SPX_N]
+{
+  root = __merkle_gen_root(root, pub_seed, sk_seed);
+  return root;
+}
+
+inline
+fn __merkle_gen_root_(
+  reg ptr u8[SPX_N] root,
+  reg ptr u8[SPX_N] pub_seed,
+  reg ptr u8[SPX_N] sk_seed
+) -> reg ptr u8[SPX_N]
+{
+  root = root;
+  pub_seed = pub_seed;
+  sk_seed = sk_seed;
+  
+  root = _merkle_gen_root(root, pub_seed, sk_seed);
+  
+  root = root;
+  return root;
+}

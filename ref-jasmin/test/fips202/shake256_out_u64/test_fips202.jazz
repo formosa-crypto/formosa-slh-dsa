@@ -1,7 +1,0 @@
-from Sphincs require "fips202/shake256_out_u64/shake256_out_u64.jtmpl"
-from Sphincs require "generic/utils.jtmpl"
-
-export fn shake256_out_u64<INLEN>(reg u64 out outlen, reg ptr u8[INLEN] in)
-{
-  __shake256_out_u64<INLEN>(out, outlen, in);
-}//<>
