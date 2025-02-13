@@ -1,0 +1,62 @@
+// NOTE: The parameters are required in the Makefile
+from Sphincs require "address.jinc"
+
+export
+fn set_layer_addr_jazz(reg ptr u32[8] addr, reg u32 layer) -> reg ptr u32[8] {
+    addr = __set_layer_addr(addr, layer);
+    return addr;
+}
+
+export
+fn set_tree_addr_jazz(reg ptr u32[8] addr, reg u64 tree) -> reg ptr u32[8] {
+    addr = __set_tree_addr(addr, tree);
+    return addr;
+}
+
+export
+fn set_type_jazz(reg ptr u32[8] addr, reg u32 _type) -> reg ptr u32[8] {
+    addr = __set_type(addr, _type);
+    return addr;
+}
+
+export
+fn copy_subtree_addr_jazz(reg ptr u32[8] out in) -> reg ptr u32[8] {
+    out = __copy_subtree_addr(out, in);
+    return out;
+}
+
+export
+fn set_keypair_addr_jazz(reg ptr u32[8] addr, reg u32 keypair) -> reg ptr u32[8] {
+    addr = __set_keypair_addr(addr, keypair);
+    return addr;
+}
+
+export
+fn copy_keypair_addr_jazz(reg ptr u32[8] out in) -> reg ptr u32[8] {
+    out = __copy_keypair_addr(out, in);
+    return out;
+}
+
+export
+fn set_chain_addr_jazz(reg ptr u32[8] addr, reg u32 chain) -> reg ptr u32[8] {
+    addr = __set_chain_addr(addr, chain);
+    return addr;
+}
+
+export
+fn set_hash_addr_jazz(reg ptr u32[8] addr, reg u32 hash)-> reg ptr u32[8] {
+    addr = __set_hash_addr(addr, hash);
+    return addr;
+}
+
+export
+fn set_tree_height_jazz(reg ptr u32[8] addr, reg u32 tree_height) -> reg ptr u32[8] {
+    addr = __set_tree_height(addr, tree_height);
+    return addr;
+}
+
+export
+fn set_tree_index_jazz(reg ptr u32[8] addr, reg u32 tree_index) -> reg ptr u32[8] {
+    addr = __set_tree_index(addr, tree_index);
+    return addr;
+}
