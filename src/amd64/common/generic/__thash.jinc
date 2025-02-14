@@ -1,3 +1,9 @@
+namespace shake256_thash {
+    param int OUTLEN = SPX_N;
+    param int INLEN  = SPX_N + SPX_ADDR_BYTES + INBLOCKS * SPX_N;
+    from Sphincs require "fips202/shake256_array/__shake256.jinc"
+}
+
 inline 
 fn __thash(
   reg ptr u8[SPX_N] out,
@@ -14,7 +20,7 @@ fn __thash(
   buf[SPX_N + SPX_ADDR_BYTES : INBLOCKS * SPX_N] = #copy(in);
 
   buf_p = buf;
-  out = __shake256<SPX_N,SPX_N+SPX_ADDR_BYTES+INBLOCKS * SPX_N>(out, buf_p);
+  out = shake256_thash::__shake256(out, buf_p);
 
   out = out;
 

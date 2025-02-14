@@ -1,52 +1,96 @@
 // NOTE: The parameters are required in the Makefile
-from SphincsRef require "hash_shake.jinc"
+from Sphincs require "compute_root.jinc"
 
-export
-fn prf_addr_jazz(
-  reg ptr u8[SPX_N] out,
-  reg ptr u8[SPX_N] pub_seed,
-  reg ptr u8[SPX_N] sk_seed,
-  reg ptr u32[8] addr
-) -> reg ptr u8[SPX_N]
+inline 
+fn __load_args(
+  reg uptr args_ptr
+) -> stack u8[SPX_N], // root
+     stack u8[SPX_N], // leaf
+     reg u32, // leaf idx;
+     reg u32, // idx_offset;
+     reg uptr, // auth_path; 
+     reg u32, // tree_height;
+     stack u8[SPX_N], // pub_seed
+     stack u32[8] // addr
+
 {
-  out = __prf_addr_(out, pub_seed, sk_seed, addr);
-  return out;
+  stack u8[SPX_N] _root;
+  stack u8[SPX_N] leaf;
+  reg u32 leaf_idx idx_offset;
+  reg uptr auth_path;  
+  reg u32 tree_height; 
+  stack u8[SPX_N] pub_seed;
+  stack u32[8] addr;
+
+  reg uptr p;
+
+  reg uptr root_ptr = (u64)[args_ptr + 8*0];
+  reg uptr leaf_ptr = (u64)[args_ptr + 8*1];
+  
+  p = (u64)[args_ptr + 8*2]; leaf_idx = (u32)[p];
+  p = (u64)[args_ptr + 8*3]; idx_offset = (u32)[p];
+
+  auth_path = (u64)[args_ptr + 8*4];
+
+  p = (u64)[args_ptr + 8*5]; tree_height  = (u32)[p];
+
+  reg uptr pub_seed_ptr = (u64)[args_ptr + 8*6];
+  reg uptr addr_ptr = (u64)[args_ptr + 8*7];
+
+  // load contents from the pointers
+
+  inline int i;
+  for i=0 to SPX_N {
+    _root[i] = (u8)[root_ptr + i];
+    leaf[i] = (u8)[leaf_ptr + i];
+    pub_seed[i] = (u8)[pub_seed_ptr + i];
+  }
+
+  for i=0 to 8 {
+    addr[i] = (u32)[addr_ptr + 4*i];
+  }
+  
+  return _root, leaf, leaf_idx, idx_offset, auth_path, tree_height, pub_seed, addr;
+
+}
+
+inline 
+fn __store_args (
+  reg uptr args_ptr,
+  stack u8[SPX_N] root,
+  stack u32[8] addr
+)
+{
+  reg uptr addr_ptr = (u64)[args_ptr + 8*7];
+  reg uptr root_ptr = (u64)[args_ptr + 8*0];
+
+  inline int i;
+
+  for i=0 to SPX_N {
+    (u8)[root_ptr + i] = root[i];
+  }
+
+  for i=0 to 8 {
+    (u32)[addr_ptr + 4*i] = addr[i];
+  }
 }
 
 export
-fn gen_message_random_jazz(
-  reg ptr u8[SPX_N] R,
-  reg ptr u8[SPX_N] sk_prf,
-  reg ptr u8[SPX_N] optrand,
-  reg uptr msg,
-  reg u64 msg_len
-) -> reg ptr u8[SPX_N]
-{
-  R = __gen_message_random_(R, sk_prf, optrand, msg, msg_len);
-  return R;
-}
+fn compute_root_jazz(reg uptr args_ptr) {
+  stack u8[SPX_N] root;
+  stack u8[SPX_N] leaf;
+  reg u32 leaf_idx idx_offset;
+  reg uptr auth_path;  
+  reg u32 tree_height; 
+  stack u8[SPX_N] pub_seed;
+  stack u32[8] addr;
 
-export
-fn hash_message_jazz(
-  reg ptr u8[SPX_FORS_MSG_BYTES] digest,
-  reg ptr u8[SPX_N] R,
-  reg ptr u8[SPX_PK_BYTES] pk,
-  reg uptr msg,
-  reg u64 msg_len,
-  reg uptr tree_leaf_idx_ptr
-) -> reg ptr u8[SPX_FORS_MSG_BYTES]
-{
-  reg u64 tree;
-  reg u32 leaf_idx;
+  () = #spill(args_ptr);
 
-  () = #spill(tree_leaf_idx_ptr);
+  root, leaf, leaf_idx, idx_offset, auth_path, tree_height, pub_seed, addr = __load_args(args_ptr);
+  root, addr = __compute_root(root, leaf, leaf_idx, idx_offset, auth_path, tree_height, pub_seed, addr);
 
-  digest, tree, leaf_idx = __hash_message_(digest, R, pk, msg, msg_len);
+  () = #unspill(args_ptr);
 
-  () = #unspill(tree_leaf_idx_ptr);
-
-  (u64) [tree_leaf_idx_ptr] = tree;
-  (u32) [tree_leaf_idx_ptr + 8] = leaf_idx;
-
-  return digest;
+  __store_args(args_ptr, root, addr);
 }

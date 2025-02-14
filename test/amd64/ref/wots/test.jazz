@@ -1,0 +1,28 @@
+// NOTE: The parameters are required in the Makefile
+
+from Sphincs    require "wots.jinc" // Code common to the ref and avx2 implementations
+from SphincsRef require "wots.jinc" // Code specific to the ref implementation
+
+export
+fn chain_lengths_jazz(
+  reg ptr u32[SPX_WOTS_LEN] lengths,
+  reg ptr u8[SPX_N] msg
+) -> reg ptr u32[SPX_WOTS_LEN]
+{
+  lengths = __chain_lengths_(lengths, msg);
+  return lengths;
+}
+
+export
+fn wots_pk_from_sig_jazz(
+  reg ptr u8[SPX_WOTS_BYTES] pk,
+  reg ptr u32[8] addr,
+  reg uptr sig_ptr,
+  reg ptr u8[SPX_N] msg,
+  reg ptr u8[SPX_N] pub_seed
+) -> reg ptr u8[SPX_WOTS_BYTES], reg ptr u32[8]
+{
+  pk, addr = __wots_pk_from_sig_(pk, sig_ptr, msg, pub_seed, addr);
+  return pk, addr;
+}
+

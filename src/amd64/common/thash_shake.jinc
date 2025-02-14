@@ -54,3 +54,8 @@ namespace thash_2 {
   param int INBLOCKS = 2;
   from Sphincs require "generic/__thash.jinc"
 }
+
+namespace thash_wots_len {
+  param int INBLOCKS = SPX_WOTS_LEN;
+  from Sphincs require "generic/__thash.jinc"
+}

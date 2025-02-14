@@ -3,39 +3,22 @@
  * See the ref/ and avx2/ directories for the rest of the code
  */
 
-inline 
-fn __base_w<OUTLEN,INLEN>(
-  reg ptr u32[OUTLEN] output,
-  reg ptr u8[INLEN] input
-) -> reg ptr u32[OUTLEN]
-{
-  reg u64 in = 0;
-  reg u64 out = 0;
-  reg u64 bits = 0;
-  reg u64 consumed = 0;
-  reg u8 total;
-  reg u32 total_32;
+from Sphincs require "types.jinc"
+from Stdlib require "stdlib.jinc"
 
-  while (consumed < OUTLEN) {
-    if (bits == 0) {
-      total = input[in];
-      in += 1;
-      bits += 8;
-    }
+namespace basew_checksum {
+  param int OUTLEN = SPX_WOTS_LEN2;
+  param int INLEN = (SPX_WOTS_LEN2 * SPX_WOTS_LOGW + 7) / 8;
+  
+  from Sphincs require "generic/__base_w.jinc"
+}
 
-    bits -= SPX_WOTS_LOGW;
-    
-    total_32 = (32u) total;
-    total_32 >>= (bits & 31);
-    total_32 &= (SPX_WOTS_W - 1);
-    output[out] = total_32;
-
-    out += 1;
-    consumed += 1;
-  }
-
-  return output;
-}//<>
+namespace basew_chain_lengths {
+  param int OUTLEN = SPX_WOTS_LEN;
+  param int INLEN = SPX_N;
+  
+  from Sphincs require "generic/__base_w.jinc"
+}
 
 inline 
 fn __wots_checksum(
@@ -71,9 +54,9 @@ fn __wots_checksum(
   ?{}, csum = #SHL(csum, u);
 
   csum_bytes_p = csum_bytes;
-  csum_bytes_p = std::bytes::u64_to_bytes<(SPX_WOTS_LEN2 * SPX_WOTS_LOGW + 7) / 8>(csum_bytes_p, csum);
+  csum_bytes_p = std::bytes::Wchecksum::u64_to_bytes(csum_bytes_p, csum);
 
-  csum_base_w = __base_w<SPX_WOTS_LEN2, (SPX_WOTS_LEN2 * SPX_WOTS_LOGW + 7) / 8>(csum_base_w, csum_bytes_p);
+  csum_base_w = basew_checksum::__base_w(csum_base_w, csum_bytes_p);
 
   return csum_base_w;
 }
@@ -86,7 +69,7 @@ fn __chain_lengths(
 {
   reg ptr u32[SPX_WOTS_LEN2] t;
   
-  lengths = __base_w<SPX_WOTS_LEN, SPX_N>(lengths, msg);
+  lengths = basew_chain_lengths::__base_w(lengths, msg);
 
   t = lengths[SPX_WOTS_LEN1 : SPX_WOTS_LEN2];
   t = __wots_checksum(t, lengths);

@@ -1,0 +1,33 @@
+inline 
+fn __base_w(
+  reg ptr u32[OUTLEN] output,
+  reg ptr u8[INLEN] input
+) -> reg ptr u32[OUTLEN]
+{
+  reg u64 in = 0;
+  reg u64 out = 0;
+  reg u64 bits = 0;
+  reg u64 consumed = 0;
+  reg u8 total;
+  reg u32 total_32;
+
+  while (consumed < OUTLEN) {
+    if (bits == 0) {
+      total = input[in];
+      in += 1;
+      bits += 8;
+    }
+
+    bits -= SPX_WOTS_LOGW;
+    
+    total_32 = (32u) total;
+    total_32 >>= (bits & 31);
+    total_32 &= (SPX_WOTS_W - 1);
+    output[out] = total_32;
+
+    out += 1;
+    consumed += 1;
+  }
+
+  return output;
+}

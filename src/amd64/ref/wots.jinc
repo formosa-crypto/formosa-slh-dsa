@@ -1,3 +1,7 @@
+from Sphincs    require "address.jinc"
+from SphincsRef require "hash_shake.jinc"  // TODO: Manage this in the Makefile
+from Sphincs    require "thash_shake.jinc" // TODO: Manage this in the Makefile
+
 inline 
 fn __gen_chain(
   reg ptr u8[SPX_N] out,
@@ -11,7 +15,7 @@ fn __gen_chain(
   reg u32 i t;
 
   // memcpy(out, in, SPX_N);
-  out = std::_x_memcpy_u8u8p<SPX_N>(out, 0, in_ptr, SPX_N);
+  out = std::memcpy_u8u8p_SPX_N::_x_memcpy_u8u8p(out, 0, in_ptr, SPX_N);
 
   () = #spill(pub_seed, addr);
 
@@ -246,7 +250,7 @@ fn __wots_gen_leafx1(
   // thash(dest, pk_buffer, SPX_WOTS_LEN, ctx, pk_addr);
   () = #unspill(dest, pub_seed, pk_addr);
   pk_buffer_p = pk_buffer;
-  dest = __thash_<SPX_WOTS_LEN>(dest, pk_buffer_p, pub_seed, pk_addr);
+  dest = thash_wots_len::__thash_(dest, pk_buffer_p, pub_seed, pk_addr);
 
   () = #unspill(leaf_addr, pk_addr);
 
