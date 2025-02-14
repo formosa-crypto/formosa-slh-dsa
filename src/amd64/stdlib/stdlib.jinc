@@ -28,6 +28,7 @@ namespace std {
         return acc;
     }
 
+/*
     inline 
     fn __memcpy_u8u8p<OUTLEN>(
         reg ptr u8[OUTLEN] out,
@@ -46,7 +47,7 @@ namespace std {
         }
 
         return out;
-    }//<>
+    }
 
     fn _memcpy_u8u8p<OUTLEN>(
         reg ptr u8[OUTLEN] out,
@@ -57,7 +58,7 @@ namespace std {
     {
         out = __memcpy_u8u8p<OUTLEN>(out, offset, in, inlen);
         return out;
-    }//<>
+    }
 
     inline 
     fn _x_memcpy_u8u8p<OUTLEN>(
@@ -75,7 +76,7 @@ namespace std {
 
         out = out;
         return out;
-    }//<>
+    }
 
     inline 
     fn __memcpy_u8u8<OUTLEN,INLEN>(
@@ -90,7 +91,7 @@ namespace std {
             offset += 1;
         }
         return out;
-    }//<>
+    }
 
     fn _memcpy_u8u8<OUTLEN,INLEN>(
         reg ptr u8[OUTLEN] out,
@@ -100,7 +101,7 @@ namespace std {
     {
         out = __memcpy_u8u8<OUTLEN,INLEN>(out, offset, in);
         return out;
-    }//<>
+    }
 
     inline 
     fn _x_memcpy_u8u8<OUTLEN,INLEN>(
@@ -118,7 +119,7 @@ namespace std {
       out = out;
 
       return out;
-    }//<>
+    }
 
     inline 
     fn __memcpy_u8u8_2<OUTLEN,INLEN>(
@@ -139,7 +140,7 @@ namespace std {
       }
 
       return out;
-    }//<>
+    }
 
     fn _memcpy_u8u8_2<OUTLEN,INLEN>(
       reg ptr u8[OUTLEN] out,
@@ -151,7 +152,7 @@ namespace std {
     {
       out = __memcpy_u8u8_2<OUTLEN,INLEN>(out, out_offset, in, in_offset, bytes);
       return out;
-    }//<>
+    }
 
     inline 
     fn _x_memcpy_u8u8_2<OUTLEN,INLEN>(
@@ -173,7 +174,7 @@ namespace std {
       out = out;
 
       return out;
-    }//<>
+    }
     
     inline 
     fn __memcpy_u8pu8<INLEN>(
@@ -189,7 +190,7 @@ namespace std {
         offset += 1;
         i += 1;
       }
-    }//<>
+    }
 
     fn _memcpy_u8pu8<INLEN>(
       reg uptr out,
@@ -198,7 +199,7 @@ namespace std {
     )
     {
       __memcpy_u8pu8<INLEN>(out, offset, in);
-    }//<>
+    }
 
     inline 
     fn _x_memcpy_u8pu8<INLEN>(
@@ -211,7 +212,8 @@ namespace std {
       offset = offset;
       in = in;
       _memcpy_u8pu8<INLEN>(out, offset, in);
-    }//<>
+    }
+*/
 
     namespace cond {    
         // Check if a < b /\ a < c
@@ -251,43 +253,30 @@ namespace std {
     }
 
     namespace bytes {
-        inline fn bytes_to_u64<INLEN>(reg ptr u8[INLEN] in) -> reg u64 {
-          inline int i;
-          reg u64 result t;
+      namespace TREE_BYTES {
+        param int LEN = SPX_TREE_BYTES;
+        from Sphincs require "generic/__bytes.jinc"
+      }
 
-          result = 0;
-          for i=0 to INLEN - 1 {
-            t = (64u) in[i];
-            result |= t;
-            result <<= 8;
-          } 
-
-          t = (64u) in[INLEN - 1];
-          result |= t;
-
-          return result;
-        }//<>
-
-        inline 
-        fn u64_to_bytes<OUTLEN>(reg ptr u8[OUTLEN] out, reg u64 in) -> reg ptr u8[OUTLEN] {
-          inline int i;
-
-          for i=OUTLEN-1 downto -1 { out[i] = (8u) in; in >>= 8; }
-
-          return out;
-        }//<>
+      namespace LEAF_BYTES {
+        param int LEN = SPX_LEAF_BYTES;
+        from Sphincs require "generic/__bytes.jinc"
+      }
     }
+
+/*
 
     inline 
     fn __load_u8_array<INLEN>(reg ptr u8[INLEN] out, reg uptr addr) -> reg ptr u8[INLEN]  {
       reg u64 i = 0;
       while(i < INLEN) { out[i] = (u8)[addr + i]; i += 1; }
       return out;
-    }//<>
+    }
 
     inline 
     fn __store_u8_array<INLEN>(reg ptr u8[INLEN] in, reg uptr addr) {
       reg u64 i = 0;
       while (i < INLEN) { (u8)[addr + i] = in[i]; i += 1; }
-    }//<>
+    }
+    */
 }

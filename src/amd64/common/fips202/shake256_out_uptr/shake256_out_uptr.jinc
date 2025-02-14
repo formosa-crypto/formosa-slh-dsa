@@ -1,5 +1,5 @@
 from Sphincs require "fips202/common/fips202_common.jinc"
-from Sphincs require "fips202/shake256_array/keccak1600.jtmpl" //  absorb 
+from Sphincs require "fips202/shake256_array/keccak1600.jinc" //  absorb 
 from Sphincs require "fips202/shake256_ptr/keccakf1600.jinc" // permutacao
 
 // From libjade

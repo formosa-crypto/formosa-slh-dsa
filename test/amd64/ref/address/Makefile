@@ -16,7 +16,7 @@ JINCLUDE     ?= -I Sphincs:../../../../src/amd64/common/
 
 HASH_LIST     := shake # TODO: Add sha2 variant
 PARAMS_LIST   := 128f 128s 192f 192s 256f 256s
-THASH_LIST    := simple robust
+THASH_LIST    := simple 
 
 GET_HASH  = $(word 1, $(subst _, ,$*))
 GET_PARAM = $(word 2, $(subst _, ,$*))
@@ -69,4 +69,4 @@ bin/:
 
 .PHONY: clean
 clean:
-	-$(RM) -r bin/
+	-$(RM) -r bin/ tmp_*

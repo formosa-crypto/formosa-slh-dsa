@@ -1,6 +1,6 @@
-require "keccak1600.jtmpl"
+require "keccak1600.jinc"
 
-inline fn __shake256<OUTLEN,INLEN>(
+inline fn __shake256(
   reg ptr u8[OUTLEN] out,
   reg ptr u8[INLEN] in
 ) -> reg ptr u8[OUTLEN]
@@ -11,7 +11,7 @@ inline fn __shake256<OUTLEN,INLEN>(
   trail_byte = 0x1F;
   rate = (1088/8);
 
-  out = _keccak1600_<OUTLEN,INLEN>(out, in, trail_byte, rate);
+  out = _keccak1600_(out, in, trail_byte, rate);
   
   return out;
-}//<>
+}

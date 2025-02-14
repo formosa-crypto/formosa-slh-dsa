@@ -1,0 +1,27 @@
+inline 
+fn bytes_to_u64(reg ptr u8[LEN] in) -> reg u64 {
+  inline int i;
+  reg u64 result t;
+
+  result = 0;
+  
+  for i=0 to LEN - 1 {
+    t = (64u) in[i];
+    result |= t;
+    result <<= 8;
+  } 
+
+  t = (64u) in[LEN - 1];
+  result |= t;
+  
+  return result;
+}
+
+inline 
+fn u64_to_bytes(reg ptr u8[LEN] out, reg u64 in) -> reg ptr u8[LEN] {
+    inline int i;
+
+    for i=LEN-1 downto -1 { out[i] = (8u) in; in >>= 8; }
+
+    return out;
+}

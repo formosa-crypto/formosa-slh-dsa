@@ -35,12 +35,12 @@ fn __compute_root(
 
   if(leaf_idx_bit == 1) {
     // buffer = auth_path || leaf
-    buffer = std::_x_memcpy_u8u8p<2*SPX_N>(buffer, 0, auth_path, SPX_N);
+    // buffer = std::_x_memcpy_u8u8p<2*SPX_N>(buffer, 0, auth_path, SPX_N);
     buffer[SPX_N : SPX_N] = #copy(leaf);
   } else {
     // buffer = leaf || auth_path
     buffer[0 : SPX_N] = #copy(leaf);
-    buffer = std::_x_memcpy_u8u8p<2*SPX_N>(buffer, SPX_N, auth_path, SPX_N);
+    // buffer = std::_x_memcpy_u8u8p<2*SPX_N>(buffer, SPX_N, auth_path, SPX_N);
   }
 
   // increment pointer (sig)
@@ -79,24 +79,24 @@ fn __compute_root(
     if (leaf_idx_bit == 1) {
       // thash(buffer + SPX_N, buffer, 2, ctx, addr);
       buffer_1 = buffer[SPX_N : SPX_N];
-      buffer_1 = __thash<2>(buffer_1, buffer, pub_seed, addr);
+      buffer_1 = thash_2::__thash_(buffer_1, buffer, pub_seed, addr);
       buffer[SPX_N : SPX_N] = buffer_1;
 
       // memcpy(buffer, auth_path, SPX_N);
       buffer_0 = buffer[0:SPX_N];
       () = #unspill(auth_path);
-      buffer_0 = std::_x_memcpy_u8u8p<SPX_N>(buffer_0, 0, auth_path, SPX_N);
+      // buffer_0 = std::_x_memcpy_u8u8p<SPX_N>(buffer_0, 0, auth_path, SPX_N);
       buffer[0 : SPX_N] = buffer_0;
     } else {
       // thash(buffer, buffer, 2, ctx, addr);
       buffer_0 = buffer[0 : SPX_N]; 
-      buffer_0 = __thash<2>(buffer_0, buffer, pub_seed, addr);
+      buffer_0 = thash_2::__thash_(buffer_0, buffer, pub_seed, addr);
       buffer[0 : SPX_N] = buffer_0;
 
       // memcpy(buffer + SPX_N, auth_path, SPX_N);
       buffer_1 = buffer[SPX_N : SPX_N];
       () = #unspill(auth_path);
-      buffer_1 = std::_x_memcpy_u8u8p<SPX_N>(buffer_1, 0, auth_path, SPX_N);
+      // buffer_1 = std::_x_memcpy_u8u8p<SPX_N>(buffer_1, 0, auth_path, SPX_N);
       buffer[SPX_N:SPX_N] = buffer_1;
     }
 
@@ -122,7 +122,7 @@ fn __compute_root(
   buffer = buffer;
   () = #unspill(pub_seed);
 
-  root = __thash_<2>(root, buffer, pub_seed, addr);
+  root = thash_2::__thash_(root, buffer, pub_seed, addr);
 
   return root, addr;
-}//<>
+}

@@ -1,0 +1,12 @@
+// NOTE: The parameters are required in the Makefile
+from Sphincs require "thash_shake.jinc"
+
+export
+fn thash_inplace_jazz(
+  reg ptr u8[SPX_N] out, // INBLOCKS = 1
+  reg ptr u8[SPX_N] pub_seed,
+  reg ptr u32[8] addr
+) -> reg ptr u8[SPX_N] {
+    out = __thash_inplace_(out, pub_seed, addr);
+    return out;
+}

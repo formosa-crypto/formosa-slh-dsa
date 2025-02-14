@@ -1,0 +1,52 @@
+// NOTE: The parameters are required in the Makefile
+from SphincsRef require "hash_shake.jinc"
+
+export
+fn prf_addr_jazz(
+  reg ptr u8[SPX_N] out,
+  reg ptr u8[SPX_N] pub_seed,
+  reg ptr u8[SPX_N] sk_seed,
+  reg ptr u32[8] addr
+) -> reg ptr u8[SPX_N]
+{
+  out = __prf_addr_(out, pub_seed, sk_seed, addr);
+  return out;
+}
+
+export
+fn gen_message_random_jazz(
+  reg ptr u8[SPX_N] R,
+  reg ptr u8[SPX_N] sk_prf,
+  reg ptr u8[SPX_N] optrand,
+  reg uptr msg,
+  reg u64 msg_len
+) -> reg ptr u8[SPX_N]
+{
+  R = __gen_message_random_(R, sk_prf, optrand, msg, msg_len);
+  return R;
+}
+
+export
+fn hash_message_jazz(
+  reg ptr u8[SPX_FORS_MSG_BYTES] digest,
+  reg ptr u8[SPX_N] R,
+  reg ptr u8[SPX_PK_BYTES] pk,
+  reg uptr msg,
+  reg u64 msg_len,
+  reg uptr tree_leaf_idx_ptr
+) -> reg ptr u8[SPX_FORS_MSG_BYTES]
+{
+  reg u64 tree;
+  reg u32 leaf_idx;
+
+  () = #spill(tree_leaf_idx_ptr);
+
+  digest, tree, leaf_idx = __hash_message_(digest, R, pk, msg, msg_len);
+
+  () = #unspill(tree_leaf_idx_ptr);
+
+  (u64) [tree_leaf_idx_ptr] = tree;
+  (u32) [tree_leaf_idx_ptr + 8] = leaf_idx;
+
+  return digest;
+}

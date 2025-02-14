@@ -34,9 +34,9 @@ run: $(OUT)
 
 # ------------------------------------------------------------------------------
 
-SOURCES = ../../../../submodules/sphincsplus/shake-avx2/address.c ../../../../submodules/sphincsplus/shake-avx2/utils.c \
-			../../../../submodules/sphincsplus/shake-avx2/thash_$(GET_HASH)_$(GET_THASH).c \
-			../../../../submodules/sphincsplus/shake-avx2/fips202.c \
+SOURCES = ../../../../submodules/sphincsplus/ref/address.c ../../../../submodules/sphincsplus/ref/utils.c \
+			../../../../submodules/sphincsplus/ref/thash_$(GET_HASH)_$(GET_THASH).c \
+			../../../../submodules/sphincsplus/ref/fips202.c \
 			../../../common/notrandombytes.c ../../../common/test_commons.c 
 
 .PRECIOUS: bin/test_address_%.jpp
@@ -56,8 +56,8 @@ bin/test_address_%.s: test.jazz | bin/
 $(TESTS):
 bin/test_address_%: test.c bin/test_address_%.s | bin/
 	$(CC) $(CFLAGS) -o $@ -DPARAMS=sphincs-$(GET_HASH)-$(GET_PARAM) $(TEST_FLAGS) \
-	-I../../../common -I../../../../submodules/sphincsplus/shake-avx2/ \
-	-I../../../../submodules/sphincsplus/shake-avx2/params/ $^ $(SOURCES)
+	-I../../../common -I../../../../submodules/sphincsplus/ref/ \
+	-I../../../../submodules/sphincsplus/ref/params/ $^ $(SOURCES)
 
 bin/test_address_%.out: bin/test_address_%
 	@./$<

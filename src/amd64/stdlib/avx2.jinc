@@ -1,5 +1,3 @@
-// TODO: Rename the parameters to match the INTEL documentation.
-
 /**
  * Set 256-bit register with eight 32-bit integer values.
  *

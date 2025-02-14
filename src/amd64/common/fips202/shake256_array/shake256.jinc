@@ -1,0 +1,6 @@
+namespace shake256_SPX_N__2_SPX_N_p_SPX_ADDR_BYTES {
+    param int OUTLEN = SPX_N;
+    param int INLEN = 2*SPX_N + SPX_ADDR_BYTES;
+
+    require "__shake256.jinc"
+}
